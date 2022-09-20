@@ -1,0 +1,276 @@
+apiVersion: apps/v1
+kind: {{ if .Values.useStatefulSet }}{{ "StatefulSet" }}{{- else }}{{ "Deployment" }}{{- end }}
+metadata:
+  name: {{ template "mongodb.fullname" . }}
+  labels:
+    app: {{ template "mongodb.name" . }}
+    chart: {{ template "mongodb.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+    {{- with .Values.labels }}
+{{ toYaml . | indent 4 }}
+    {{- end }}
+  {{- with .Values.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.useStatefulSet }}
+  serviceName: {{ template "mongodb.serviceName" . }}
+  updateStrategy:
+  {{- else }}
+  strategy:
+  {{- end }}
+    type: {{ .Values.updateStrategy.type }}
+    {{- if (eq "Recreate" .Values.updateStrategy.type) }}
+    rollingUpdate: null
+    {{- end }}
+  selector:
+    matchLabels:
+      app: {{ template "mongodb.name" . }}
+      release: "{{ .Release.Name }}"
+  template:
+    metadata:
+      labels:
+        app: {{ template "mongodb.name" . }}
+        release: "{{ .Release.Name }}"
+        chart: {{ template "mongodb.chart" . }}
+      {{- if .Values.podLabels }}
+{{ toYaml .Values.podLabels | indent 8 }}
+      {{- end }}
+      {{- if or .Values.podAnnotations .Values.metrics.enabled }}
+      annotations:
+{{- if .Values.podAnnotations }}
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
+{{- if .Values.metrics.enabled }}
+{{ toYaml .Values.metrics.podAnnotations | indent 8 }}
+{{- end }}
+      {{- end }}
+    spec:
+      {{- if .Values.schedulerName }}
+      schedulerName: "{{ .Values.schedulerName }}"
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+      {{- end }}
+      {{- if .Values.affinity }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+      {{- end -}}
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+      {{- end }}
+      initContainers:
+      {{- if .Values.extraInitContainers }}
+{{ tpl .Values.extraInitContainers . | indent 6}}
+      {{- end }}
+      {{- if and .Values.volumePermissions.enabled .Values.persistence.enabled }}
+      - name: volume-permissions
+        image: "{{ .Values.busybox.image}}:{{ .Values.busybox.tag }}"
+        imagePullPolicy: {{ .Values.imagePullPolicy | quote }}
+        # command:  ["rm", "-fr", "/var/lib/mysql/lost+found"]
+        # command:  ["chmod", "-R", "777", "/opt/mis/"]
+        command:
+          - "/bin/sh"
+          - "-c"
+          - "mkdir -p {{ .Values.persistence.mountPath }}/data && chmod -R 777 {{ .Values.persistence.mountPath }}"
+        securityContext:
+          runAsUser: 0
+        resources: {{ toYaml .Values.volumePermissions.resources | nindent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: {{ .Values.persistence.mountPath }}
+        # {{- if .Values.configmap }}
+        # - name: config
+        #   mountPath: /etc/mongod.conf
+        #   subPath: mongodb.conf
+        # {{- end }}
+      {{- end }}
+      containers:
+      - name: {{ template "mongodb.fullname" . }}
+        image: {{ template "mongodb.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        # {{- if .Values.persistence.enabled }}
+        # {{- if (.Files.Glob "files/docker-entrypoint-initdb.d/*[sh|js|json|pem]")}}
+        # command:
+        #   - "/docker-entrypoint-initdb.d/entrypoint.sh"
+        # {{- end }}
+        # {{- if (.Files.Glob "files/docker-entrypoint-initdb.d/*[sh|js|json]")}}
+        # {{- end }}
+        args:
+          - "mongod"
+          {{- if .Values.persistence.enabled }}
+          - "--dbpath={{.Values.persistence.mountPath}}/data"
+          {{- end }}
+          {{- if .Values.configmap }}
+          - "-f"
+          - "/etc/mongod.conf"
+          {{- end }}
+          {{- end }}
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: {{ .Values.securityContext.runAsUser }}
+        {{- end }}
+        env:
+        {{- if .Values.mysqlAllowEmptyPassword }}
+        - name: MONGODB_ALLOW_EMPTY_PASSWORD
+          value: "true"
+        {{- end }}
+        {{- if not (and .Values.allowEmptyRootPassword (not .Values.mongodbRootPassword)) }}
+        - name: MONGODB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "mongodb.secretName" . }}
+              key:  mongodb-root-password
+              {{- if .Values.mongodbAllowEmptyPassword }}
+              optional: true
+              {{- end }}
+        {{- end }}
+        {{- if not (and .Values.allowEmptyRootPassword (not .Values.mongodbPassword)) }}
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "mongodb.secretName" . }}
+              key:  mongodb-password
+              {{- if or .Values.mongodbAllowEmptyPassword (empty .Values.mongodbUser) }}
+              optional: true
+              {{- end }}
+        {{- end }}
+        - name: MONGODB_USER
+          value: {{ default "" .Values.mongodbUser | quote }}
+        - name: MONGODB_DATABASE
+          value: {{ default "" .Values.mongodbDatabase | quote }}
+        - name: CLUSTER_LOCAL_DNS
+          value: {{ template "mongodb.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local              
+        - name: CLUSTER_HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name : MONGODB_APP_NAME
+          value: {{ template "mongodb.fullname" . }}
+        - name : MONGODB_APP_NS
+          value: {{ .Release.Namespace }}
+        - name : APPLICATION_NAME
+          value: {{ default "" .Values.applicationname | quote }}
+        - name : APPLICATION_DESC
+          value: {{ default "" .Values.applicationdesc | quote }}
+        - name : DOWNTIME_CONTACT
+          value: {{ default "" .Values.downtimecontact | quote }}
+        - name : DATA_OWNER
+          value: {{ default "" .Values.dataowner | quote }}
+        {{- if .Values.timezone }}
+        - name: TZ
+          value: {{ .Values.timezone }}
+        {{- end }}
+        ports:
+        - name: mongodb
+          containerPort: 27017
+        {{- if .Values.livenessProbe.enabled }}
+        livenessProbe:
+          exec:
+            command:
+              - mongo
+              - --eval
+              - "db.adminCommand('ping')"
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+        {{- end }}
+        {{- if .Values.readinessProbe.enabled }}
+        readinessProbe:
+          exec:
+            command:
+              - mongo
+              - --eval
+              - "db.adminCommand('ping')"
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+        {{- end }}
+        volumeMounts:
+        # - name: config
+        #   mountPath: /etc/mongod.conf
+        #   subPath: mongodb.conf
+        {{- if .Values.configmap }}
+        - name: config
+          mountPath: /etc/mongod.conf
+          subPath: mongodb.conf
+        {{- end }}
+        {{- if (.Files.Glob "files/docker-entrypoint-initdb.d/*[sh|js|json|pem]") }}
+        - name: custom-init-scripts
+          mountPath: /docker-entrypoint-initdb.d
+        {{- end }}
+        - name: data
+          mountPath: {{ .Values.persistence.mountPath }}
+        resources:
+{{ toYaml .Values.metrics.resources | indent 10 }}
+{{- if .Values.sidecars }}
+{{ toYaml .Values.sidecars | indent 6 }}
+{{- end }}
+      volumes:
+      {{- if (.Files.Glob "files/docker-entrypoint-initdb.d/*[sh|js|json|pem]") }}
+      - name: custom-init-scripts
+        configMap:
+          defaultMode: 0755
+          name: {{ template "mongodb.fullname" . }}-init-scripts
+      {{- end }}
+      {{- if (.Values.initConfigMap) }}
+      - name: custom-init-scripts
+        configMap:
+          name: {{ .Values.initConfigMap.name }}
+      {{- end }}
+      - name: data
+      {{- if not .Values.useStatefulSet }}
+      {{- if .Values.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistence.existingClaim | default (include "mongodb.fullname" .) }}
+      {{- else }}
+        emptyDir: {}
+      {{- end -}}
+      {{- end -}}
+      {{- if .Values.configmap }}
+      - name: config
+        configMap:
+          name: {{ template "mongodb.fullname" . }}
+      {{- end }}
+      {{- if .Values.extraVolumes }}
+{{ toYaml .Values.extraVolumes | indent 6}}
+      {{- end }}
+{{- if .Values.useStatefulSet }}
+{{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        annotations:
+        {{- range $key, $value := .Values.persistence.annotations }}
+          {{ $key }}: "{{ $value }}"
+        {{- end }}
+      spec:
+        accessModes:
+        {{- range .Values.persistence.accessModes }}
+          - {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}
+        {{ include "mongodb.storageClass" . }}
+{{- else }}
+        - name: data
+          emptyDir: {}
+{{- end }}
+{{- end }}

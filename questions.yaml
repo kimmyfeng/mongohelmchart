@@ -1,0 +1,111 @@
+categories:
+- Database
+- Mongodb
+questions:
+- variable: mongodbUsername
+  default: ""
+  type: string
+  required: true
+  label: Create User
+  group: "Mongodb Database"
+- variable: mongodbDatabase
+  default: ""
+  type: string
+  required: true
+  label: Create Database
+  group: "Mongodb Database"
+- variable: mongodbPassword
+  default: ""
+  type: password
+  required: true
+  label: User Password (click generate)
+  group: "Mongodb Database"
+- variable: persistence.size
+  default: "15Gi"
+  type: enum
+  options:
+    - "10Gi"
+    - "15Gi"
+    - "30Gi"
+    - "50Gi"
+    - "75Gi"
+  label: Persistent Volume Size GB (expandable)
+  group: "Mongodb Database"
+- variable: clusterEndpoint
+  default: ""
+  type: enum
+  required: true
+  options:
+    - "sdnp"
+    - "lvnp"
+  label: Drekar Cluster List
+  group: "Mongodb Database"
+#
+# Application Details
+- variable: applicationname
+  default: ""
+  type: string
+  required: true
+  label: "Application Name"
+  group: "Application Details"
+- variable: applicationdesc
+  default: ""
+  type: string
+  required: true
+  label: "Application Description"
+  group: "Application Details"
+- variable: downtimecontact
+  default: ""
+  type: string
+  required: true
+  label: "Downtime Contact (group e-mail)"
+  group: "Application Details"
+- variable: dataowner
+  default: ""
+  type: string
+  required: true
+  label: "Data Owner (individual e-mail)"
+  group: "Application Details"
+#
+# container configuration
+- variable: resources.requests.memory
+  default: "1Gi"
+  type: enum
+  options:
+    - "1Gi"
+    - "2Gi"
+    - "3Gi"
+    - "4Gi"
+    - "5Gi"
+  label: Mininum Memory GB (upgradeable)
+  group: "Container Configurations"
+- variable: resources.requests.cpu
+  default: "1"
+  type: enum
+  options:
+    - "1"
+    - "2"
+    - "3"
+    - "4"
+    - "5"
+  label: Mininum CPU Cores (upgradeable)
+  group: "Container Configurations"
+- variable: resources.limits.memory
+  default: "4Gi"
+  type: enum
+  options:
+    - "4Gi"
+    - "6Gi"
+    - "8Gi"
+  label: Maximum Memory GB (upgradeable)
+  group: "Container Configurations"
+- variable: resources.limits.cpu
+  default: "2"
+  type: enum
+  options:
+    - "2"
+    - "4"
+    - "6"
+    - "8"
+  label: Maximum CPU Cores (upgradeable)
+  group: "Container Configurations"
