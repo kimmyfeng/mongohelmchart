@@ -109,6 +109,14 @@ spec:
         # {{- end }}
         args:
           - "mongod"
+          {{- if .Values.configmap.net.tls.mode }}
+          - "--tlsCertificateKeyFile"
+          - "/docker-entrypoint-initdb.d/wrdmongodev.pem"
+          - "--tlsClusterFile"
+          - "/docker-entrypoint-initdb.d/wrdmongodev.pem"
+          - "--tlsCAFile"
+          - "/docker-entrypoint-initdb.d/wrdcaroot.pem"
+          {{- end }}
           {{- if .Values.persistence.enabled }}
           - "--dbpath={{.Values.persistence.mountPath}}/data"
           {{- end }}
