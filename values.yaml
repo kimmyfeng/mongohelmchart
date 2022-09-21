@@ -461,7 +461,7 @@ configmap:
      clusterAuthMode: x509
      authorization: enabled
      ldap:
-       servers: "ldap.zhangwei.asia:1636"
+       servers: "qed-ldap.qualcomm.com"
        transportSecurity: tls
        userToDNMapping:
          '[{
