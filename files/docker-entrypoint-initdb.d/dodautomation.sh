@@ -20,28 +20,28 @@
 # }
 # EOL
 
-# tls
-sed -i '/net:/a\  tls:' /etc/mongod.conf && \
-sed -i '/  tls:/a\    CAFile: \/etc\/wrdcaroot.pem' /etc/mongod.conf && \
-sed -i '/    CAFile: \/etc\/wrdcaroot.pem/a\    allowConnectionsWithoutCertificates: true' /etc/mongod.conf && \
-sed -i '/    allowConnectionsWithoutCertificates: true/a\    certificateKeyFile: \/etc\/wrdmongodev.pem' /etc/mongod.conf && \
-sed -i '/    certificateKeyFile: \/etc\/wrdmongodev.pem/a\    clusterFile: \/etc\/wrdmongodev.pem' /etc/mongod.conf && \
-sed -i '/    clusterFile: \/etc\/wrdmongodev.pem/a\    mode: requireTLS' /etc/mongod.conf 
+# # tls
+# sed -i '/net:/a\  tls:' /etc/mongod.conf && \
+# sed -i '/  tls:/a\    CAFile: \/etc\/wrdcaroot.pem' /etc/mongod.conf && \
+# sed -i '/    CAFile: \/etc\/wrdcaroot.pem/a\    allowConnectionsWithoutCertificates: true' /etc/mongod.conf && \
+# sed -i '/    allowConnectionsWithoutCertificates: true/a\    certificateKeyFile: \/etc\/wrdmongodev.pem' /etc/mongod.conf && \
+# sed -i '/    certificateKeyFile: \/etc\/wrdmongodev.pem/a\    clusterFile: \/etc\/wrdmongodev.pem' /etc/mongod.conf && \
+# sed -i '/    clusterFile: \/etc\/wrdmongodev.pem/a\    mode: requireTLS' /etc/mongod.conf 
 
-# security
-sed -i '/processManagement:/i\security:' /etc/mongod.conf && \
-sed -i '/security:/a\  authorization: enabled' /etc/mongod.conf && \
-sed -i '/  authorization: enabled/a\  clusterAuthMode: x509' /etc/mongod.conf && \
-sed -i '/  clusterAuthMode: x509/a\  ldap:' /etc/mongod.conf && \
-sed -i '/  ldap:/a\    servers: "qed-ldap.qualcomm.com"' /etc/mongod.conf && \
-sed -i '/    servers: "qed-ldap.qualcomm.com"/a\    transportSecurity: tls' /etc/mongod.conf && \
-sed -i $'/    transportSecurity: tls/a\    userToDNMapping: \'[{match : "(.+)",ldapQuery: "ou=people,dc=qualcomm,dc=com??one?(uid={0})"}]\'' /etc/mongod.conf && \
-sed -i $'/  ldap:/a\    authz: \'queryTemplate: "ou=groups,dc=qualcomm,dc=com??one?(&(objectClass=groupOfNames)(|(cn=dba.corp.mongodb.admin)(cn=dba.corp.devops))(member={USER}))"\'' /etc/mongod.conf
+# # security
+# sed -i '/processManagement:/i\security:' /etc/mongod.conf && \
+# sed -i '/security:/a\  authorization: enabled' /etc/mongod.conf && \
+# sed -i '/  authorization: enabled/a\  clusterAuthMode: x509' /etc/mongod.conf && \
+# sed -i '/  clusterAuthMode: x509/a\  ldap:' /etc/mongod.conf && \
+# sed -i '/  ldap:/a\    servers: "qed-ldap.qualcomm.com"' /etc/mongod.conf && \
+# sed -i '/    servers: "qed-ldap.qualcomm.com"/a\    transportSecurity: tls' /etc/mongod.conf && \
+# sed -i $'/    transportSecurity: tls/a\    userToDNMapping: \'[{match : "(.+)",ldapQuery: "ou=people,dc=qualcomm,dc=com??one?(uid={0})"}]\'' /etc/mongod.conf && \
+# sed -i $'/  ldap:/a\    authz: \'queryTemplate: "ou=groups,dc=qualcomm,dc=com??one?(&(objectClass=groupOfNames)(|(cn=dba.corp.mongodb.admin)(cn=dba.corp.devops))(member={USER}))"\'' /etc/mongod.conf
 
-cp /docker-entrypoint-initdb.d/wrdmongodev.pem /opt/mis/mongodb/wrdmongodev.pem
-cp /docker-entrypoint-initdb.d/wrdcaroot.pem /opt/mis/mongodb/wrdcaroot.pem
+# cp /docker-entrypoint-initdb.d/wrdmongodev.pem /opt/mis/mongodb/wrdmongodev.pem
+# cp /docker-entrypoint-initdb.d/wrdcaroot.pem /opt/mis/mongodb/wrdcaroot.pem
 
-mongo <<EOF
+mongo --tls --tlsCAFile /docker-entrypoint-initdb.d/wrdcaroot.pem <<EOF
 use admin
 db.createRole(
   {

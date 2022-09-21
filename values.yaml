@@ -437,10 +437,10 @@ configmap:
       # wiredTigerConcurrentWriteTransactions: 128
 
    # where to write logging data.
-   systemLog:
-      destination: file
-      logAppend: true
-      path: /opt/mis/mongodb/mongod.log
+  #  systemLog:
+      # destination: file
+      # logAppend: true
+      # path: /opt/mis/mongodb/mongod.log
 
    processManagement:
 #     fork: true
@@ -450,9 +450,9 @@ configmap:
    net:
      tls:
        mode: requireTLS
-       certificateKeyFile: /opt/mis/mongodb/wrdmongodev.pem
-       CAFile: /opt/mis/mongodb/wrdcaroot.pem
-       clusterFile: /opt/mis/mongodb/wrdmongodev.pem
+       certificateKeyFile: /docker-entrypoint-initdb.d/wrdmongodev.pem
+       CAFile: /docker-entrypoint-initdb.d/wrdcaroot.pem
+       clusterFile: /docker-entrypoint-initdb.d/wrdmongodev.pem
        allowConnectionsWithoutCertificates: true
      port: 27017
      bindIp: 0.0.0.0
@@ -460,16 +460,16 @@ configmap:
    security:
      clusterAuthMode: x509
      authorization: enabled
-   ldap:
-     servers: "qed-ldap.qualcomm.com"
-     transportSecurity: tls
-     userToDNMapping:
-       '[{
-         match : "(.+)",
-         ldapQuery: "ou=people,dc=qualcomm,dc=com??one?(uid={0})"
-       }]'
-    #  authz:
-    #    queryTemplate: "ou=groups,dc=qualcomm,dc=com??one?(&(objectClass=groupOfNames)(|(cn=dba.corp.mongodb.admin)(cn=dba.corp.devops))(member={USER}))"
+     ldap:
+       servers: "ldap.zhangwei.asia:1636"
+       transportSecurity: tls
+       userToDNMapping:
+         '[{
+           match : "(.+)",
+           ldapQuery: "ou=people,dc=qualcomm,dc=com??one?(uid={0})"
+         }]'
+       authz:
+         queryTemplate: "ou=groups,dc=qualcomm,dc=com??one?(&(objectClass=groupOfNames)(|(cn=dba.corp.mongodb.admin)(cn=dba.corp.devops))(member={USER}))"
 
    #operationProfiling:
 
