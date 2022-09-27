@@ -75,7 +75,7 @@ usePassword: true
 ## MongoDB admin password
 ## ref: https://github.com/bitnami/bitnami-docker-mongodb/blob/master/README.md#setting-the-root-password-on-first-run
 ##
-# mongodbRootPassword:
+mongodbRootPassword: root
 
 ## MongoDB custom user and database
 ## ref: https://github.com/bitnami/bitnami-docker-mongodb/blob/master/README.md#creating-a-user-and-database-on-first-run
@@ -457,19 +457,19 @@ configmap:
      port: 27017
      bindIp: 0.0.0.0
 
-   security:
-     clusterAuthMode: x509
-     authorization: enabled
-     ldap:
-       servers: "qed-ldap.qualcomm.com"
-       transportSecurity: tls
-       userToDNMapping:
-         '[{
-           match : "(.+)",
-           ldapQuery: "ou=people,dc=qualcomm,dc=com??one?(uid={0})"
-         }]'
-       authz:
-         queryTemplate: "ou=groups,dc=qualcomm,dc=com??one?(&(objectClass=groupOfNames)(|(cn=dba.corp.mongodb.admin)(cn=dba.corp.devops))(member={USER}))"
+#   security:
+#     clusterAuthMode: x509
+#     authorization: enabled
+#     ldap:
+#       servers: "qed-ldap.qualcomm.com"
+#       transportSecurity: tls
+#       userToDNMapping:
+#         '[{
+#           match : "(.+)",
+#           ldapQuery: "ou=people,dc=qualcomm,dc=com??one?(uid={0})"
+#         }]'
+#       authz:
+#         queryTemplate: "ou=groups,dc=qualcomm,dc=com??one?(&(objectClass=groupOfNames)(|(cn=dba.corp.mongodb.admin)(cn=dba.corp.devops))(member={USER}))"
 
    #operationProfiling:
 
@@ -486,13 +486,13 @@ configmap:
 ## Prometheus Exporter / Metrics
 ##
 metrics:
-  enabled: false
+  enabled: true
 
   image:
     registry: docker.io
-    repository: percona/percona-server-mongodb-exporter
+    repository: percona/mongodb_exporter
     # repository: bitnami/mongodb-exporter
-    tag: 0.10.0-debian-10-r41
+    tag: "0.34.0"
     pullPolicy: IfNotPresent
     ## Optionally specify an array of imagePullSecrets.
     ## Secrets must be manually created in the namespace.
@@ -508,7 +508,7 @@ metrics:
   ## Metrics exporter resource requests and limits
   ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
   ##
-  # resources: {}
+#  resources: {}
 
   ## Metrics exporter liveness and readiness probes
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes)

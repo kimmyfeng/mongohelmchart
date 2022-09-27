@@ -48,6 +48,10 @@ spec:
 {{- end }}
       {{- end }}
     spec:
+      hostAliases:
+        - ip: "127.0.0.1"
+          hostnames:
+            - "local.qualcomm.com"
       {{- if .Values.schedulerName }}
       schedulerName: "{{ .Values.schedulerName }}"
       {{- end }}
@@ -97,19 +101,62 @@ spec:
         # {{- end }}
       {{- end }}
       containers:
+{{- if .Values.metrics.enabled }}
+      - name: metrics
+        image: {{ template "mongodb.metrics.image" . }}
+        imagePullPolicy: {{ .Values.metrics.image.pullPolicy | quote }}
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: {{ .Values.securityContext.runAsUser }}
+        {{- end }}
+        args:
+          - --mongodb.uri=mongodb://admin:root@local.qualcomm.com:{{ .Values.service.port }}/admin
+          - --collector.collstats
+          - --collector.dbstats
+          - --collector.diagnosticdata
+          - --collector.replicasetstatus
+          - --collector.indexstats
+{{/*          - --web.config=/docker-entrypoint-initdb.d/tls_server_config.yaml*/}}
+        ports:
+          - name: metrics
+            containerPort: 9216
+        volumeMounts:
+        {{- if (.Files.Glob "files/docker-entrypoint-initdb.d/*[pem|yaml]") }}
+          - name: custom-init-scripts
+            mountPath: /docker-entrypoint-initdb.d
+        {{- end }}
+        {{- if .Values.metrics.livenessProbe.enabled }}
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          initialDelaySeconds: {{ .Values.metrics.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.metrics.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.metrics.livenessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.metrics.livenessProbe.failureThreshold }}
+          successThreshold: {{ .Values.metrics.livenessProbe.successThreshold }}
+        {{- end }}
+        {{- if .Values.metrics.readinessProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          initialDelaySeconds: {{ .Values.metrics.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.metrics.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.metrics.readinessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.metrics.readinessProbe.failureThreshold }}
+          successThreshold: {{ .Values.metrics.readinessProbe.successThreshold }}
+        {{- end }}
+        resources:
+{{ toYaml .Values.metrics.resources | indent 12 }}
+{{- end }}
       - name: {{ template "mongodb.fullname" . }}
         image: {{ template "mongodb.image" . }}
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
-        # {{- if .Values.persistence.enabled }}
-        # {{- if (.Files.Glob "files/docker-entrypoint-initdb.d/*[sh|js|json|pem]")}}
-        # command:
-        #   - "/docker-entrypoint-initdb.d/entrypoint.sh"
-        # {{- end }}
-        # {{- if (.Files.Glob "files/docker-entrypoint-initdb.d/*[sh|js|json]")}}
-        # {{- end }}
         args:
           - "mongod"
-          {{- if .Values.configmap.net.tls.mode }}
+          {{- if .Values.configmap.net.tls }}
           - "--tlsCertificateKeyFile"
           - "/docker-entrypoint-initdb.d/wrdmongodev.pem"
           - "--tlsClusterFile"
@@ -124,7 +171,6 @@ spec:
           - "-f"
           - "/etc/mongod.conf"
           {{- end }}
-          {{- end }}
         {{- if .Values.securityContext.enabled }}
         securityContext:
           runAsNonRoot: true
@@ -136,7 +182,9 @@ spec:
           value: "true"
         {{- end }}
         {{- if not (and .Values.allowEmptyRootPassword (not .Values.mongodbRootPassword)) }}
-        - name: MONGODB_ROOT_PASSWORD
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: admin
+        - name: MONGO_INITDB_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
               name: {{ template "mongodb.secretName" . }}
@@ -219,7 +267,7 @@ spec:
           mountPath: /etc/mongod.conf
           subPath: mongodb.conf
         {{- end }}
-        {{- if (.Files.Glob "files/docker-entrypoint-initdb.d/*[sh|js|json|pem]") }}
+        {{- if (.Files.Glob "files/docker-entrypoint-initdb.d/*[sh|js|json|pem|yaml]") }}
         - name: custom-init-scripts
           mountPath: /docker-entrypoint-initdb.d
         {{- end }}
@@ -231,7 +279,7 @@ spec:
 {{ toYaml .Values.sidecars | indent 6 }}
 {{- end }}
       volumes:
-      {{- if (.Files.Glob "files/docker-entrypoint-initdb.d/*[sh|js|json|pem]") }}
+      {{- if (.Files.Glob "files/docker-entrypoint-initdb.d/*[sh|js|json|pem|yaml]") }}
       - name: custom-init-scripts
         configMap:
           defaultMode: 0755
