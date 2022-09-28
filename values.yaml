@@ -126,7 +126,7 @@ service:
   ## Provide any additional annotations which may be required.
   ## The value is evaluated as a template, so, for example, the value can depend on .Release or .Chart
   annotations: {}
-  type: ClusterIP
+  type: LoadBalancer
   # clusterIP: None
   port: 27017
 
@@ -537,7 +537,7 @@ metrics:
   ##      https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md
   serviceMonitor:
     ## If the operator is installed in your cluster, set to true to create a Service Monitor Entry
-    enabled: false
+    enabled: true
 
     ## Specify a namespace if needed
     # namespace: monitoring
