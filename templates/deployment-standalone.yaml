@@ -102,6 +102,7 @@ spec:
       {{- end }}
       containers:
 {{- if .Values.metrics.enabled }}
+      # 增加 metrics sidecar
       - name: metrics
         image: {{ template "mongodb.metrics.image" . }}
         imagePullPolicy: {{ .Values.metrics.image.pullPolicy | quote }}
@@ -110,7 +111,7 @@ spec:
           runAsNonRoot: true
           runAsUser: {{ .Values.securityContext.runAsUser }}
         {{- end }}
-        args:
+        args: # 启动参数
           - --mongodb.uri=mongodb://admin:root@local.qualcomm.com:{{ .Values.service.port }}/admin
           - --collector.collstats
           - --collector.dbstats
