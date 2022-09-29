@@ -32,11 +32,33 @@ spec:
 {{- if .Values.service.nodePort }}
     nodePort: {{ .Values.service.nodePort }}
 {{- end }}
-{{- if .Values.metrics.enabled }}
-  - name: metrics
-    port: 9216
-    targetPort: metrics
+  selector:
+    app: {{ template "mongodb.name" . }}
+    release: "{{ .Release.Name }}"
 {{- end }}
+---
+{{- if .Values.metrics.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "mongodb.serviceName" . }}-metrics
+  labels:
+    app: {{ template "mongodb.name" . }}
+    chart: {{ template "mongodb.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+  annotations:
+    field.cattle.io/targetWorkloadIds: '["deployment:{{ .Release.Namespace }}:{{ template "mongodb.fullname" . }}"]'
+{{- with .Values.service.annotations }}
+    {{ tpl (toYaml .) $ | nindent 4 }}
+{{- end }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      protocol: TCP
+      port: 80
+      targetPort: metrics
   selector:
     app: {{ template "mongodb.name" . }}
     release: "{{ .Release.Name }}"

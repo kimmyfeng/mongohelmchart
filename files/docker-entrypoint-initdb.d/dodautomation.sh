@@ -52,3 +52,18 @@ db.createRole(
 )
 quit()
 EOF
+
+mongo --tls --tlsCAFile /docker-entrypoint-initdb.d/wrdcaroot.pem <<EOF
+use admin
+db.createRole(
+  {
+    "role":"clusterMonitor",
+    "db":"admin"
+  },
+  {
+    "role":"read",
+    "db":"local"
+  }
+)
+quit()
+EOF
