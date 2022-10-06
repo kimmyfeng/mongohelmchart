@@ -48,10 +48,14 @@ spec:
 {{- end }}
       {{- end }}
     spec:
+      ## mongodb 配置 tls, 证书只签发了 *.qualcomm.com 这个泛域名，通过 127.0.0.1 无法访问，给容器增加一个 hosts 记录，通过 local.qualcomm.com 访问
       hostAliases:
         - ip: "127.0.0.1"
           hostnames:
             - "local.qualcomm.com"
+      {{- if .Values.serviceAccount.create}}
+      serviceAccountName: {{ template "mongodb.fullname" . }}-{{ template "mongodb.serviceAccountName" . }}
+      {{- end }}
       {{- if .Values.schedulerName }}
       schedulerName: "{{ .Values.schedulerName }}"
       {{- end }}
@@ -102,6 +106,7 @@ spec:
       {{- end }}
       containers:
 {{- if .Values.metrics.enabled }}
+      # 增加 metrics sidecar
       - name: metrics
         image: {{ template "mongodb.metrics.image" . }}
         imagePullPolicy: {{ .Values.metrics.image.pullPolicy | quote }}
@@ -110,7 +115,7 @@ spec:
           runAsNonRoot: true
           runAsUser: {{ .Values.securityContext.runAsUser }}
         {{- end }}
-        args:
+        args: # 启动参数
           - --mongodb.uri=mongodb://admin:root@local.qualcomm.com:{{ .Values.service.port }}/admin
           - --collector.collstats
           - --collector.dbstats
@@ -184,6 +189,7 @@ spec:
         {{- if not (and .Values.allowEmptyRootPassword (not .Values.mongodbRootPassword)) }}
         - name: MONGO_INITDB_ROOT_USERNAME
           value: admin
+        ##
         - name: MONGO_INITDB_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:

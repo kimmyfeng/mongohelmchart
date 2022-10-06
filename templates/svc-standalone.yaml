@@ -38,6 +38,7 @@ spec:
 {{- end }}
 ---
 {{- if .Values.metrics.enabled }}
+## metrics service
 apiVersion: v1
 kind: Service
 metadata:
