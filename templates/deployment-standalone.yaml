@@ -53,6 +53,9 @@ spec:
         - ip: "127.0.0.1"
           hostnames:
             - "local.qualcomm.com"
+      {{- if .Values.serviceAccount.create}}
+      serviceAccountName: {{ template "mongodb.fullname" . }}-{{ template "mongodb.serviceAccountName" . }}
+      {{- end }}
       {{- if .Values.schedulerName }}
       schedulerName: "{{ .Values.schedulerName }}"
       {{- end }}

@@ -251,3 +251,14 @@ in the values file. If the name is not explicitly set it will take the "mongodb.
     {{ template "mongodb.fullname" .}}
   {{- end -}}
 {{- end -}}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "mongodb.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create -}}
+{{ default (include "mongodb.fullname" .) .Values.serviceAccount.name }}
+{{- else -}}
+{{ default "default" .Values.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
